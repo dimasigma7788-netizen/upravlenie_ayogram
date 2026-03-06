@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AyoGram</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg:        #0f0f13;
+    --bg2:       #17171f;
+    --bg3:       #1f1f2a;
+    --border:    #2a2a3a;
+    --accent:    #7c6af7;
+    --accent2:   #5b4fe0;
+    --green:     #34d399;
+    --red:       #f87171;
+    --yellow:    #fbbf24;
+    --text:      #e8e8f0;
+    --text2:     #8888a8;
+    --text3:     #5555778;
+    --radius:    16px;
+    --radius-sm: 10px;
+    --shadow:    0 4px 24px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Onest', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ── Layout ── */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* ── Header ── */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+    box-shadow: 0 0 16px rgba(124,106,247,.4);
+  }
+  .header-info { flex: 1; min-width: 0; }
+  .header-title { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+  .header-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .header-badge {
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    background: rgba(124,106,247,.15); color: var(--accent);
+    border: 1px solid rgba(124,106,247,.3);
+    white-space: nowrap;
+  }
+  .header-badge.pro { background: rgba(52,211,153,.15); color: var(--green); border-color: rgba(52,211,153,.3); }
+  .header-badge.trial { background: rgba(251,191,36,.15); color: var(--yellow); border-color: rgba(251,191,36,.3); }
+  .header-badge.expired { background: rgba(248,113,113,.15); color: var(--red); border-color: rgba(248,113,113,.3); }
+
+  /* ── Nav ── */
+  .nav {
+    display: flex; gap: 4px;
+    padding: 12px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: none;
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    transition: all .2s;
+    background: transparent; color: var(--text2);
+  }
+  .nav-btn.active { background: var(--accent); color: #fff; box-shadow: 0 2px 12px rgba(124,106,247,.4); }
+  .nav-btn:hover:not(.active) { background: var(--bg3); color: var(--text); }
+
+  /* ── Content ── */
+  .content { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    animation: fadeIn .3s ease;
+  }
+  .card-header {
+    padding: 14px 16px 10px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .card-icon.purple { background: rgba(124,106,247,.15); }
+  .card-icon.green  { background: rgba(52,211,153,.15); }
+  .card-icon.blue   { background: rgba(59,130,246,.15); }
+  .card-icon.orange { background: rgba(251,146,60,.15); }
+  .card-icon.red    { background: rgba(248,113,113,.15); }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .card-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .card-body { padding: 14px 16px; }
+
+  /* ── Status row ── */
+  .status-row {
+    display: flex; align-items: center;
+    padding: 12px 16px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .status-row:last-child { border-bottom: none; }
+  .status-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+  .status-info { flex: 1; min-width: 0; }
+  .status-label { font-size: 13px; font-weight: 500; }
+  .status-value { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .status-chip {
+    padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .chip-green { background: rgba(52,211,153,.15); color: var(--green); }
+  .chip-red   { background: rgba(248,113,113,.15); color: var(--red); }
+  .chip-yellow{ background: rgba(251,191,36,.15);  color: var(--yellow); }
+  .chip-purple{ background: rgba(124,106,247,.15); color: var(--accent); }
+
+  /* ── Toggle row ── */
+  .toggle-row {
+    display: flex; align-items: center;
+    padding: 13px 16px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-row:hover { background: rgba(255,255,255,.02); }
+  .toggle-row.locked { opacity: .6; cursor: default; }
+  .toggle-icon { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+  .toggle-info { flex: 1; min-width: 0; }
+  .toggle-label { font-size: 13px; font-weight: 500; }
+  .toggle-desc { font-size: 11px; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+  .toggle-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px;
+    background: rgba(124,106,247,.2); color: var(--accent);
+    margin-left: 6px; vertical-align: middle;
+  }
+
+  /* Toggle switch */
+  .toggle-switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--bg3); border-radius: 13px;
+    border: 1px solid var(--border);
+    transition: all .25s;
+    cursor: pointer;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: var(--text2); border-radius: 50%;
+    transition: all .25s;
+  }
+  input:checked + .toggle-track {
+    background: var(--accent); border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(124,106,247,.4);
+  }
+  input:checked + .toggle-track::after {
+    transform: translateX(18px); background: #fff;
+  }
+  .toggle-row.locked .toggle-track { cursor: default; }
+
+  /* ── Stat grid ── */
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+  }
+  .stat-num { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
+  .stat-num.accent { color: var(--accent); }
+  .stat-num.green  { color: var(--green); }
+  .stat-num.yellow { color: var(--yellow); }
+  .stat-num.red    { color: var(--red); }
+  .stat-lbl { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  /* ── Plan cards ── */
+  .plan-grid { display: flex; flex-direction: column; gap: 10px; }
+  .plan-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .plan-card:hover { border-color: var(--accent); background: rgba(124,106,247,.06); }
+  .plan-card.popular { border-color: var(--accent); background: rgba(124,106,247,.08); position: relative; }
+  .popular-badge {
+    position: absolute; top: -1px; right: 12px;
+    background: var(--accent); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 3px 8px;
+    border-radius: 0 0 8px 8px; letter-spacing: .5px;
+  }
+  .plan-emoji { font-size: 28px; }
+  .plan-info { flex: 1; }
+  .plan-name { font-size: 15px; font-weight: 600; }
+  .plan-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .plan-price { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .plan-price span { font-size: 13px; color: var(--text2); font-weight: 400; }
+
+  /* ── Referral ── */
+  .ref-link {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 12px; color: var(--text2);
+    word-break: break-all; line-height: 1.5;
+    font-family: monospace;
+  }
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 20px; border-radius: var(--radius-sm);
+    border: none; font-family: inherit; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all .2s; width: 100%;
+  }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 4px 16px rgba(124,106,247,.4);
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-outline {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-outline:hover { background: var(--bg3); }
+
+  /* ── Referral stats ── */
+  .ref-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .ref-stat { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+  .ref-stat-num { font-size: 22px; font-weight: 700; }
+  .ref-stat-lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* ── Loading ── */
+  .loading {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 50vh; gap: 16px;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  .loading-text { font-size: 14px; color: var(--text2); }
+
+  /* ── Error ── */
+  .error-box {
+    background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.3);
+    border-radius: var(--radius-sm); padding: 14px; text-align: center;
+    font-size: 13px; color: var(--red);
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--bg3); color: var(--text); border: 1px solid var(--border);
+    padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500;
+    box-shadow: var(--shadow); opacity: 0; transition: all .3s;
+    pointer-events: none; white-space: nowrap; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Animations ── */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes spin   { to { transform: rotate(360deg); } }
+
+  /* ── Section hidden ── */
+  .section { display: none; }
+  .section.active { display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* ── Info row ── */
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px; font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: var(--text2); }
+  .info-val { font-weight: 500; }
+
+  /* ── PRO promo ── */
+  .promo-card {
+    background: linear-gradient(135deg, rgba(124,106,247,.15), rgba(167,139,250,.08));
+    border: 1px solid rgba(124,106,247,.3);
+    border-radius: var(--radius); padding: 18px;
+    text-align: center;
+  }
+  .promo-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .promo-sub { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 16px; }
+  .promo-features { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px; }
+  .promo-feat {
+    background: rgba(124,106,247,.12); color: var(--accent);
+    border: 1px solid rgba(124,106,247,.25);
+    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">⚡</div>
+    <div class="header-info">
+      <div class="header-title">AyoGram</div>
+      <div class="header-sub" id="hdr-sub">Загрузка...</div>
+    </div>
+    <div class="header-badge" id="hdr-badge">...</div>
+  </div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <button class="nav-btn active" onclick="showSection('dashboard')">🏠 Главная</button>
+    <button class="nav-btn" onclick="showSection('features')">⚙️ Функции</button>
+    <button class="nav-btn" onclick="showSection('subscription')">💳 Подписка</button>
+    <button class="nav-btn" onclick="showSection('referral')">🔗 Реферал</button>
+    <button class="nav-btn" onclick="showSection('help')">❓ Помощь</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content" id="main-content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Загрузка данных...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+// Apply Telegram theme colors if available
+if (tg.colorScheme === 'light') {
+  document.documentElement.style.setProperty('--bg', '#f5f5f7');
+  document.documentElement.style.setProperty('--bg2', '#ffffff');
+  document.documentElement.style.setProperty('--bg3', '#f0f0f5');
+  document.documentElement.style.setProperty('--text', '#0f0f13');
+  document.documentElement.style.setProperty('--text2', '#666688');
+  document.documentElement.style.setProperty('--border', '#e0e0eb');
+}
+
+let userData = null;
+let currentSection = 'dashboard';
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg, dur = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// ── Section switch ─────────────────────────────────────────────────────────
+function showSection(name) {
+  currentSection = name;
+  document.querySelectorAll('.nav-btn').forEach((b, i) => {
+    b.classList.toggle('active', b.getAttribute('onclick').includes(`'${name}'`));
+  });
+  renderSection(name);
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function apiGet(path) {
+  const headers = {};
+  if (tg.initData) headers['X-Telegram-Init-Data'] = tg.initData;
+  const res = await fetch(path, { headers });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (tg.initData) headers['X-Telegram-Init-Data'] = tg.initData;
+  const res = await fetch(path, { method: 'POST', headers, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── Load data ──────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    userData = await apiGet('/api/me');
+    updateHeader();
+    renderSection(currentSection);
+  } catch (e) {
+    document.getElementById('main-content').innerHTML = `
+      <div class="error-box">
+        ⚠️ Не удалось загрузить данные.<br><small>${e.message}</small><br><br>
+        <button class="btn btn-outline" onclick="loadData()" style="margin-top:10px;width:auto;padding:8px 16px">Повторить</button>
+      </div>`;
+  }
+}
+
+// ── Header ─────────────────────────────────────────────────────────────────
+function updateHeader() {
+  if (!userData) return;
+  const sub = userData.subscription;
+  const nameEl = document.getElementById('hdr-sub');
+  const badgeEl = document.getElementById('hdr-badge');
+
+  nameEl.textContent = userData.username ? `@${userData.username}` : `ID ${userData.user_id}`;
+
+  if (userData.is_paid) {
+    badgeEl.textContent = '👑 PRO';
+    badgeEl.className = 'header-badge pro';
+  } else if (sub.status === 'trial') {
+    badgeEl.textContent = `🎁 Триал ${sub.trial_days_left}д`;
+    badgeEl.className = 'header-badge trial';
+  } else {
+    badgeEl.textContent = '❌ Истёк';
+    badgeEl.className = 'header-badge expired';
+  }
+}
+
+// ── Render sections ────────────────────────────────────────────────────────
+function renderSection(name) {
+  const el = document.getElementById('main-content');
+  if (!userData) return;
+
+  const renders = {
+    dashboard:    renderDashboard,
+    features:     renderFeatures,
+    subscription: renderSubscription,
+    referral:     renderReferral,
+    help:         renderHelp,
+  };
+
+  el.innerHTML = '';
+  el.style.animation = 'none';
+  setTimeout(() => {
+    el.style.animation = '';
+    el.innerHTML = `<div class="section active" id="sec-${name}"></div>`;
+    (renders[name] || renderDashboard)(document.getElementById(`sec-${name}`));
+  }, 50);
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+function renderDashboard(el) {
+  const sub = userData.subscription;
+  const feats = userData.features || {};
+
+  const connStatus = userData.connected
+    ? '<span class="status-chip chip-green">🔌 Подключён</span>'
+    : '<span class="status-chip chip-red">❌ Не подключён</span>';
+
+  let subChip = '';
+  if (userData.is_paid) subChip = `<span class="status-chip chip-green">✅ PRO</span>`;
+  else if (sub.status === 'trial') subChip = `<span class="status-chip chip-yellow">🎁 Триал: ${sub.trial_days_left} дн.</span>`;
+  else subChip = `<span class="status-chip chip-red">❌ Истёк</span>`;
+
+  const expStr = sub.expires
+    ? new Date(sub.expires).toLocaleDateString('ru', {day:'2-digit',month:'2-digit',year:'numeric'})
+    : '—';
+
+  const modelBadge = userData.is_paid
+    ? '<span class="status-chip chip-purple">🔬 small</span>'
+    : '<span class="status-chip chip-yellow">⚡ tiny</span>';
+
+  const activeFeats = Object.entries(feats).filter(([,v]) => v).length;
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon purple">👤</div>
+        <div><div class="card-title">Аккаунт</div><div class="card-sub">Статус подключения</div></div>
+      </div>
+      <div class="status-row">
+        <div class="status-icon">🔌</div>
+        <div class="status-info"><div class="status-label">Аккаунт Telegram</div><div class="status-value">${userData.phone || 'Не указан'}</div></div>
+        ${connStatus}
+      </div>
+      <div class="status-row">
+        <div class="status-icon">💳</div>
+        <div class="status-info"><div class="status-label">Подписка</div><div class="status-value">До: ${expStr}</div></div>
+        ${subChip}
+      </div>
+      <div class="status-row">
+        <div class="status-icon">🎤</div>
+        <div class="status-info"><div class="status-label">Модель STT</div><div class="status-value">Расшифровка голосовых</div></div>
+        ${modelBadge}
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-num accent">${activeFeats}</div>
+        <div class="stat-lbl">Функций активно</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num yellow">${userData.stars_spent || 0}</div>
+        <div class="stat-lbl">⭐ Потрачено</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num green">${userData.referral.joined}</div>
+        <div class="stat-lbl">Рефералов</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num purple">${userData.referral.extra_days}</div>
+        <div class="stat-lbl">Бонусных дней</div>
+      </div>
+    </div>
+
+    ${!userData.connected ? `
+    <div class="card">
+      <div class="card-body">
+        <div style="text-align:center;padding:8px 0">
+          <div style="font-size:32px;margin-bottom:10px">🔌</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:6px">Аккаунт не подключён</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:16px">Подключи Telegram-аккаунт для мониторинга</div>
+          <button class="btn btn-primary" onclick="openInBot('account')">Подключить в боте</button>
+        </div>
+      </div>
+    </div>` : ''}
+
+    ${!userData.is_paid ? `
+    <div class="promo-card">
+      <div class="promo-title">✨ Перейди на PRO</div>
+      <div class="promo-sub">Получи доступ к расширенным функциям мониторинга</div>
+      <div class="promo-features">
+        <span class="promo-feat">🔬 STT small</span>
+        <span class="promo-feat">📸 Медиа сразу</span>
+        <span class="promo-feat">👁 Слежка онлайн</span>
+        <span class="promo-feat">🤖 AI-сводки</span>
+        <span class="promo-feat">📊 Статистика</span>
+      </div>
+      <button class="btn btn-primary" onclick="showSection('subscription')">Выбрать план →</button>
+    </div>` : ''}
+  `;
+}
+
+// ── Features ───────────────────────────────────────────────────────────────
+const FEATURE_META = {
+  deleted_messages: { icon: '🗑', label: 'Удалённые сообщения', desc: 'Уведомления о удалённых/изменённых сообщениях. Текст — бесплатно, медиа — PRO или 5⭐', pro: false },
+  voice_stt:        { icon: '🎤', label: 'Расшифровка голосовых', desc: 'Автоматический перевод голосовых в текст. FREE: tiny, PRO: small', pro: false },
+  voice_summary:    { icon: '🤖', label: 'AI-сводка голосовых', desc: 'Краткое резюме расшифрованных голосовых через AI', pro: true },
+  stats:            { icon: '📊', label: 'Статистика аккаунта', desc: 'Команда /stats — количество чатов, каналов, групп', pro: true },
+  online_tracker:   { icon: '👁', label: 'Слежка за онлайном', desc: 'Уведомления когда пользователь заходит и выходит. /track @username', pro: true },
+};
+
+function renderFeatures(el) {
+  const feats = userData.features || {};
+  const paid = userData.is_paid;
+
+  const rows = Object.entries(FEATURE_META).map(([key, meta]) => {
+    const enabled = feats[key] || false;
+    const locked = meta.pro && !paid;
+    const toggleId = `tog_${key}`;
+
+    return `
+      <div class="toggle-row ${locked ? 'locked' : ''}" ${!locked ? `onclick="toggleFeature('${key}', '${toggleId}')"` : `onclick="showToast('🔒 Только PRO подписка')"`}>
+        <div class="toggle-icon">${meta.icon}</div>
+        <div class="toggle-info">
+          <div class="toggle-label">${meta.label}${meta.pro ? '<span class="toggle-badge">PRO</span>' : ''}</div>
+          <div class="toggle-desc">${meta.desc}</div>
+        </div>
+        <label class="toggle-switch" onclick="event.stopPropagation()">
+          <input type="checkbox" id="${toggleId}" ${enabled ? 'checked' : ''} ${locked ? 'disabled' : ''}
+            onchange="${!locked ? `toggleFeature('${key}', '${toggleId}', this.checked)` : ''}">
+          <div class="toggle-track"></div>
+        </label>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon purple">⚙️</div>
+        <div><div class="card-title">Мои функции</div><div class="card-sub">Включай и выключай по своему усмотрению</div></div>
+      </div>
+      ${rows}
+    </div>
+
+    <div class="card" style="background:rgba(124,106,247,.05)">
+      <div class="card-body">
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">
+          🌍 <strong>Перевод</strong> доступен всем бесплатно:<br>
+          Пиши в чате: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">/en текст</code><br>
+          Поддерживаемые языки: en ru de fr es it pt zh ja ko ar tr pl uk ...
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function toggleFeature(key, toggleId, val) {
+  const checkbox = document.getElementById(toggleId);
+  const newVal = val !== undefined ? val : checkbox.checked;
+
+  if (userData.features[key] === newVal) return;
+
+  const meta = FEATURE_META[key];
+  if (meta.pro && !userData.is_paid) {
+    if (checkbox) checkbox.checked = false;
+    showToast('🔒 Только PRO подписка');
+    return;
+  }
+
+  try {
+    await apiPost('/api/action', { action: 'toggle_feature', key, value: newVal });
+    userData.features[key] = newVal;
+    showToast(newVal ? `✅ ${meta.label} включена` : `❌ ${meta.label} выключена`);
+
+    // Обновляем чекбокс
+    if (checkbox) checkbox.checked = newVal;
+  } catch (e) {
+    showToast('❌ Ошибка, попробуй снова');
+    if (checkbox) checkbox.checked = !newVal;
+  }
+}
+
+// ── Subscription ───────────────────────────────────────────────────────────
+function renderSubscription(el) {
+  const sub = userData.subscription;
+  const paid = userData.is_paid;
+
+  const plans = [
+    { key: 'week',  emoji: '📅', name: 'Неделя',  days: 7,   stars: 19,  desc: '7 дней PRO доступа' },
+    { key: 'month', emoji: '🗓', name: 'Месяц',   days: 30,  stars: 49,  desc: '30 дней PRO доступа', popular: true },
+    { key: 'year',  emoji: '🏆', name: 'Год',     days: 365, stars: 499, desc: 'Максимальная выгода' },
+  ];
+
+  const planCards = plans.map(p => `
+    <div class="plan-card ${p.popular ? 'popular' : ''}" onclick="buyPlan('${p.key}', '${p.name}', ${p.stars})">
+      ${p.popular ? '<div class="popular-badge">ПОПУЛЯРНЫЙ</div>' : ''}
+      <div class="plan-emoji">${p.emoji}</div>
+      <div class="plan-info">
+        <div class="plan-name">${p.name}</div>
+        <div class="plan-desc">${p.desc}</div>
+      </div>
+      <div class="plan-price">${p.stars} <span>⭐</span></div>
+    </div>
+  `).join('');
+
+  const expStr = sub.expires
+    ? new Date(sub.expires).toLocaleDateString('ru', {day:'2-digit',month:'2-digit',year:'numeric'})
+    : '—';
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon ${paid ? 'green' : 'orange'}">💳</div>
+        <div><div class="card-title">Статус подписки</div><div class="card-sub">${paid ? 'PRO активна' : 'Нет активной подписки'}</div></div>
+      </div>
+      <div class="info-row"><span class="info-key">Статус</span><span class="info-val">${paid ? '✅ PRO' : sub.status === 'trial' ? `🎁 Триал (${sub.trial_days_left} дн.)` : '❌ Истёк'}</span></div>
+      <div class="info-row"><span class="info-key">Активна до</span><span class="info-val">${expStr}</span></div>
+      <div class="info-row"><span class="info-key">⭐ Потрачено</span><span class="info-val">${userData.stars_spent}</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon purple">✨</div>
+        <div><div class="card-title">Выбрать план</div><div class="card-sub">Оплата через Telegram Stars</div></div>
+      </div>
+      <div class="card-body">
+        <div class="plan-grid">${planCards}</div>
+      </div>
+    </div>
+
+    <div class="card" style="background:rgba(124,106,247,.05)">
+      <div class="card-body" style="font-size:13px;color:var(--text2);line-height:1.7">
+        <strong style="color:var(--text)">PRO включает:</strong><br>
+        📸 Удалённые медиа сразу (фото, видео, голосовые)<br>
+        🔬 STT модель <strong>small</strong> — высокое качество расшифровки<br>
+        🤖 AI-сводки для голосовых сообщений<br>
+        👁 Слежка за онлайном пользователей<br>
+        📊 Статистика аккаунта Telegram
+      </div>
+    </div>
+  `;
+}
+
+function buyPlan(key, name, stars) {
+  tg.sendData(JSON.stringify({ action: 'buy_plan', key }));
+  showToast(`💳 Открываю оплату ${name}...`);
+  // Закрываем Mini App — бот отправит инвойс
+  setTimeout(() => tg.close(), 800);
+}
+
+// ── Referral ───────────────────────────────────────────────────────────────
+function renderReferral(el) {
+  const ref = userData.referral;
+  const uid = userData.user_id;
+  // Note: bot username unknown in miniapp, show placeholder
+  const link = `https://t.me/calamatebot?start=ref_${uid}`;
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon blue">🔗</div>
+        <div><div class="card-title">Реферальная программа</div><div class="card-sub">Зарабатывай бонусные дни</div></div>
+      </div>
+      <div class="card-body">
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px">
+          За каждого приглашённого:<br>
+          • <strong style="color:var(--text)">+1 день</strong> когда друг перейдёт по ссылке<br>
+          • <strong style="color:var(--text)">+2 дня</strong> когда подключит Telegram-аккаунт
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Твоя ссылка:</div>
+        <div class="ref-link">${link}</div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-primary" onclick="copyLink('${link}')">📋 Копировать</button>
+          <button class="btn btn-outline" style="flex:0;padding:13px 14px" onclick="shareLink('${link}')">↗️</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ref-stats">
+      <div class="ref-stat">
+        <div class="ref-stat-num" style="color:var(--accent)">${ref.joined}</div>
+        <div class="ref-stat-lbl">Перешли</div>
+      </div>
+      <div class="ref-stat">
+        <div class="ref-stat-num" style="color:var(--green)">${ref.connected}</div>
+        <div class="ref-stat-lbl">Подключились</div>
+      </div>
+      <div class="ref-stat">
+        <div class="ref-stat-num" style="color:var(--yellow)">${ref.extra_days}</div>
+        <div class="ref-stat-lbl">Бонус дней</div>
+      </div>
+    </div>
+  `;
+}
+
+function copyLink(link) {
+  navigator.clipboard.writeText(link).then(() => showToast('✅ Ссылка скопирована!')).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = link; document.body.appendChild(el);
+    el.select(); document.execCommand('copy'); el.remove();
+    showToast('✅ Ссылка скопирована!');
+  });
+}
+
+function shareLink(link) {
+  const text = `Попробуй AyoGram — бот для мониторинга Telegram!\n\n${link}`;
+  window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Попробуй AyoGram!')}`, '_blank');
+}
+
+// ── Help ───────────────────────────────────────────────────────────────────
+function renderHelp(el) {
+  const commands = [
+    { cmd: '/start', desc: 'Главное меню', icon: '🏠' },
+    { cmd: '/help',  desc: 'Эта справка',   icon: '❓' },
+    { cmd: '/stats', desc: 'Статистика Telegram-аккаунта [PRO]', icon: '📊' },
+    { cmd: '/online @username', desc: 'Когда был онлайн [PRO]', icon: '🕐' },
+    { cmd: '/track @username',  desc: 'Следить за онлайном [PRO]', icon: '👁' },
+    { cmd: '/untrack @username',desc: 'Убрать из слежки', icon: '🚫' },
+    { cmd: '/tracklist',        desc: 'Список слежки', icon: '📋' },
+    { cmd: '/en текст',         desc: 'Перевести на английский (в любом чате)', icon: '🌍' },
+    { cmd: '/ru текст',         desc: 'Перевести на русский', icon: '🇷🇺' },
+  ];
+
+  const cmdRows = commands.map(c => `
+    <div class="info-row">
+      <span class="info-key">${c.icon} <code style="font-size:12px">${c.cmd}</code></span>
+      <span class="info-val" style="font-size:12px;color:var(--text2)">${c.desc}</span>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon blue">❓</div>
+        <div><div class="card-title">Команды бота</div><div class="card-sub">Полный список</div></div>
+      </div>
+      ${cmdRows}
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon green">🌍</div>
+        <div><div class="card-title">Перевод сообщений</div><div class="card-sub">Работает в любом чате</div></div>
+      </div>
+      <div class="card-body">
+        <div style="font-size:13px;color:var(--text2);line-height:1.7">
+          Напиши в любом Telegram-чате команду и бот удалит её, отправив перевод:<br><br>
+          <code style="background:var(--bg3);padding:3px 8px;border-radius:5px;font-size:13px">/en Привет как дела</code><br>
+          → <i>Hello, how are you</i><br><br>
+          Поддерживаемые языки:<br>
+          <span style="word-spacing:4px">en ru de fr es it pt zh ja ko ar tr pl nl uk be kk uz vi th id ms</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon orange">👁</div>
+        <div><div class="card-title">Как работает мониторинг</div><div class="card-sub">Что отслеживает бот</div></div>
+      </div>
+      <div class="card-body">
+        <div style="font-size:13px;color:var(--text2);line-height:1.8">
+          🗑 <strong style="color:var(--text)">Удалённые сообщения</strong> — текст всегда, медиа PRO/5⭐<br>
+          ✏️ <strong style="color:var(--text)">Изменённые сообщения</strong> — было/стало<br>
+          💨 <strong style="color:var(--text)">Исчезающие медиа</strong> — сохраняет до исчезновения<br>
+          🎤 <strong style="color:var(--text)">Голосовые → текст</strong> — автоматически<br>
+          🟢 <strong style="color:var(--text)">Онлайн-трекер</strong> — приход/уход [PRO]
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Utility ────────────────────────────────────────────────────────────────
+function openInBot(section) {
+  tg.sendData(JSON.stringify({ action: 'open_menu', section }));
+  tg.close();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+tg.MainButton.setText('Открыть бота').onClick(() => tg.close());
+
+loadData();
+</script>
+</body>
+</html>
