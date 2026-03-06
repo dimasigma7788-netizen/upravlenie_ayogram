@@ -378,6 +378,11 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
+// ── API Configuration ──────────────────────────────────────────────────────────
+const API_BASE = window.location.origin.includes('localhost') 
+  ? 'http://localhost:8080'
+  : (new URLSearchParams(window.location.search).get('api') || window.location.origin);
+
 // Apply Telegram theme colors if available
 if (tg.colorScheme === 'light') {
   document.documentElement.style.setProperty('--bg', '#f5f5f7');
@@ -412,7 +417,8 @@ function showSection(name) {
 async function apiGet(path) {
   const headers = {};
   if (tg.initData) headers['X-Telegram-Init-Data'] = tg.initData;
-  const res = await fetch(path, { headers });
+  const url = new URL(path, API_BASE).href;
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -420,7 +426,8 @@ async function apiGet(path) {
 async function apiPost(path, body) {
   const headers = { 'Content-Type': 'application/json' };
   if (tg.initData) headers['X-Telegram-Init-Data'] = tg.initData;
-  const res = await fetch(path, { method: 'POST', headers, body: JSON.stringify(body) });
+  const url = new URL(path, API_BASE).href;
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
